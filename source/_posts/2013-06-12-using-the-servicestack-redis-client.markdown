@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Using the ServiceStack.Redis Client"
+title: "Using the ServiceStack Redis Client"
 date: 2013-06-12 11:53
 comments: true
 categories: 
