@@ -1,0 +1,275 @@
+---
+layout: post
+title: "HyperApi"
+date: 2013-10-03 15:11
+comments: true
+categories: [.NET, WebApi, Abstractions, C#, Programming, Simplification]
+---
+
+HyperApi - A WebAPI controller abstraction for better REST in .NET
+
+## Get your domain logic out of your api
+	
+The out of the box File -> New -> ApiController, promotes a model that immediately couples your logic into your controllers.
+If you are using any kind of DAL, Repository pattern, or whatever you want that seperates your Business Logic from your application logic, your `ApiController` should be following the same model.
+
+Let's take a look at very coupled controller
+
+	public class PersonController : ApiController
+	{
+		private PersonContext personContext;
+
+		public PersonController(PersonContext personContext)
+		{
+			this.personContext = personContext;
+		}
+
+		public Person Get(int id)
+		{
+			var person = personContext.Persons.FirstOrDefault(p => p.Id == id);
+	
+			if(person == null) { return HttpStatusCode.NotFound; }
+	
+			return person;
+		}
+	}
+
+Let's do some refactoring and put getting persons into a repository pattern
+
+	public interface IRepository<TEntity>
+	{
+		TEntity ById(int id);
+	}
+
+	public class PersonRepository : IRepository<Person>
+	{
+		private readonly PersonContext personContext;
+
+		public PersonRepository(PersonContext personContext)
+		{
+			this.personContext = personContext;
+		}
+
+		public Person ById(int id)
+		{
+			this.personContext.Persons.FirstOrDefault(p.Id == id);
+		}
+	}
+
+Now we can make our controller look as follows
+
+	public class PersonController : ApiController
+	{
+		private readonly PersonRepository personRepository;
+
+		public PersonController(PersonRepository personRepository)
+		{
+			this.personRepository = personRepository;
+		}
+
+		public Person Get(int id)
+		{
+			var person = personRepository.ById(id);
+
+			if(person == null) { return HttpStatusCode.NotFound;}
+
+			return person;
+		}
+	}	
+
+Unfortunately we really didn't get anywhere, our controllers still care a lot about what is going on, and different entities are going to have different success and failure scenarios.
+
+## What if we made a generic controller?
+
+	public class GenericController<TEntity, TRepository> : ApiController
+	{
+		protected readonly TRepository repository;
+
+		public GenericController(TRepository repository)
+		{
+			this.repository = repository;
+		}
+
+		public TEntity Get(int id)
+		{
+			var entity = repository.ById(id);
+
+			if(entity == null) { return HttpStatusCode.NotFound; }
+
+			return entity;
+		}
+	}
+
+	public class PersonController : GenericController<Person, PersonRepository>
+	{
+		public PersonController(PersonRepository personRepository) : base(personRepository) {}
+	}
+
+### Inheritance!
+
+This still poses a few problems however:
+
+	1. What if our entities have a non-int id?
+	2. What if our entities failure cases aren't the same?
+
+Making the id look up generic solves the problem fairly easily
+
+- `IRepository<TEntity>` becomes `IRepository<TEntity, TEntityId>`
+- `TEntity ById(int id)` becomes `TEntity ById(TEntityId id)`
+- `GenericController<TEntitiy, TRepository>` becomes `GenericController<TEntity, TRepository, TEntitiyId>`
+- `TEntity Get(int id)` becomes `TEntity Get(TEntityId id)`
+
+Now we can use whatever kind of key we feel like, even classes!
+
+But that still doesn't eleminate the problem that we have in our controller, where the controller has to know the specifics of what the response of the repository means in the context of how it should serve the HTTP request to the client.
+
+Enter a pattern that I'm not sure what the name of it is, but it feels like an envelope to me.
+
+	public interface IResopnseEnvelope<T>
+	{
+		T Result {get; private set;}
+		bool IsSuccessful {get; private set;}
+		string Details {get; private set;}
+	}
+
+	public class ResopnseEnvelope<T>
+	{
+		T Result {get; private set;}
+		bool IsSuccessful {get; private set;}
+		string Details {get; private set;}
+
+		private ResponseEnvelope() {}
+
+		public static ResponseEnvelope<T> Successful(T result, string details)
+		{
+			return new ResponseEnvelope
+			{
+				Result = result,
+				IsSuccessful = true,
+				Details = details
+			}
+		}
+
+		public static ResponseEnvelope<T> Unsuccessful(T result, string details)
+		{
+			return new ResponseEnvelope
+			{
+				Result = result,
+				IsSuccessful = false,
+				Details = details
+			}
+		}
+	}
+
+## But why the extra abstraction?
+
+I'm of the mindset (currently) that my API shouldn't care about why something was successful or unsuccessful, it should only care about sending the proper HTTP Resopnse. This provides a generic way of looking at a response and determing which `HttpStatusCode` should be sent back to the user, what information we actually want to send to them, and maybe if we think it's useful send them some details of why.
+
+### So what do we do now?
+
+First thing is we need our repository to go ahead and wrap the result up into a ResponseEnvelope
+
+	public IRepository<TEntitiy, TEntityId>
+	{
+		ResponseEnvelope<TEntity> ById(TEntitiyId id)
+	}
+
+and in our repository just change
+
+	Person ById(int id) to 
+
+	ResponseEnvelope<Person> ById(int id)
+	{
+		var person = personContext.Persons.FirstOrDefault(p => p.Id == id);
+
+		if(person != null)
+		{
+			return ResponseEnvelope<Person>.Successful(person, "Yay!");
+		}
+
+		return ResponseEnvelope<Person>.Unsuccessful(person, "Boo :(");
+	}
+
+Instead of having our controllers sending responses of type `TEntity` we will have our controllers send responses of type `HttpResponseMessage`, because that's really what they are doing anyways.
+
+	public class GenericController<TEntity, TRespository, TEntityId>
+	{
+		private readonly TRepository repository;
+
+		public GenericController(TRepository repository)
+		{
+			this.repository = repository;
+		}
+
+		public HttpResponseMessage Get(TEntityId id)
+		{
+			// Remember GetById now return a ResponseEnvelope<TEntity>
+			var envelope = repository.GetById(id);
+
+			if(envelope.IsSuccessful)
+			{
+				return Request.CreateResponse(HttpStatusCode.OK, envelope.Result);
+			}
+
+			return Request.CreateErrorResponse(HttpStatusCode.NotFound, envelope.Details);		
+		}
+	}
+
+## But wait there's more!
+
+If we look at what an ApiController is really doing we start to notice an emerging pattern.
+
+1. Request comes in and is routed to the appropriate controller
+2. Request is deserialized in some manner and routed to the appropriate handler
+3. The handler is invoked and then calls some method on a repository
+4. A Response is returned based on some information
+
+So really we could just have a basic controller that looks someting like this
+
+
+	public class BaseGenericController<TEntity, TRepository, TEntityId> : ApiController
+		where TRepository : IRepository<TEntitiy, TEntityId>
+	{
+		protected readonly TRepository repository;
+
+		public BaseGenericController(TRepository repository)
+		{
+			this.repository = repository;
+		}
+
+		protected HttpResponseMessage HandleRequest(ResponseEnvelope<TEntity> handler, HttpStatusCode success, HttpStatusCode failed)
+		{
+			var envelope = handler.Invoke();
+
+			if(envelope.IsSuccessful)
+			{
+				return Request.CreateResponse(success, envelope.Result);
+			}
+
+			return Request.CreateErrorResponse(failed, envelope.Details);
+		}
+
+	}
+
+Then implement our controllers as follows
+
+	public class PersonController : BaseGenericController<Person, PersonRepository, int>
+	{
+		public PersonController(PersonRepository personRepository) : base(personRepository){}
+
+		public HttpResponseMessage Get(int id)
+		{
+			return HandleRequest(personRepository.GetById(id), HttpStatusCode.OK, HttpStatusCode.NotFound);
+		}
+	}
+
+You could take this one step further and make a `GenericController` that just uses conventions so you don't actually have to write anything. But sometimes you don't want every HTTP verb on every controller.
+
+As long as your repository is returning results wrapped in a ResponseEnvelope, you aren't caring about your business logic in your api.
+
+## Testing!
+
+A good abstraction should let you see where your concerns lay. In this case it's pretty obvious that as long as our BaseGenericController understands what to do with a ResponseEnvelope it's going to do the right things. Also as long as our repositories know how to handle the cases for each of the methods that they implement we only have the care about the logic inside of them. We don't have to test that our ApiControllers know how to handle null references, because they shouldn't be getting any in the first place.
+
+
+Go forth and simplify.
