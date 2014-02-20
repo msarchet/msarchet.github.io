@@ -8,7 +8,7 @@ categories: [OWIN, ASP, .NET, C#, Programming, Bundling, Middleware, Optimizatio
 
 # Using the ASP.NET Bundling Pipeline with OWIN
 
-> To start off this is still running on top of IIS, I haven't fully done the work to make an extenable version that runs without `System.Web`.
+> To start off this is still running on top of IIS, I haven't fully done the work to make an extensible version that runs without `System.Web`.
 
 ## Why
 
