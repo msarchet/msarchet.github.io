@@ -12,7 +12,7 @@ See my previous [post](http://msarchet.com/using-the-asp-dot-net-bundling-pipeli
 
 ## Installation
 
-`Install-Package BundlerMiddlware.Markdown`
+`Install-Package BundlerMiddleware.Markdown`
 
 ## Usage
 
