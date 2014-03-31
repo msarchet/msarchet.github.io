@@ -14,7 +14,7 @@ categories: [OWIN, ASP, .NET, C#, Programming, Bundling, Middleware, Optimizatio
 
 There is has been a large shift to building client heavy web applications, or Single Page Applications, using frameworks like [Angular](angularjs.org). With this shift a large number of developers have begun exposing API's and building their applications by consuming those API's. However there is still a trend of using MVC frameworks to deliver what should effecitvely be static HTML to the browser.
 
-Currently bundling support in ASP.NET relies on the `System.Web.Optimzation` package, not on MVC or Razor as you would think based off how the tool is presented. However since MVC is the normal to serve HTML from an ASP.NET application a lot of people will serve their base page for their application as a *.cshtml file off of a MVC Controller. This requires setting up the routing, a controller, and view to get out what is effecitvely static HTML.
+Currently bundling support in ASP.NET relies on the `System.Web.Optimization` package, not on MVC or Razor as you would think based off how the tool is presented. However since MVC is the normal to serve HTML from an ASP.NET application a lot of people will serve their base page for their application as a *.cshtml file off of a MVC Controller. This requires setting up the routing, a controller, and view to get out what is effecitvely static HTML.
 
 [Owin](http://owin.org) is now part of the defacto pipeline for handling requests in ASP .NET applications, so shouldn't we be able to hook in when a request comes and inject our bundles and return the static HTML back to the consumer.
 
