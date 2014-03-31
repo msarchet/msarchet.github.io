@@ -66,4 +66,4 @@ To make use of the template file, instead of doing `app.UseBundlerMarkdown` you 
 
 BundlerMiddleware and BundlerMiddleware.Markdown are still not a 1.x release so do expect API changes and potential bugs. However I do appreciate pull requests or issues on the [github repo](http://github.com/msarchet/bundler).
 
-A shorter form of this is available on the project page at [msarchet.com/Bundler](msarchet.com/Bundler)
+A shorter form of this is available on the project page at [msarchet.com/Bundler](http://msarchet.com/Bundler)
