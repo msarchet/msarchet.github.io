@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Using the ServiceStack Redis Client</title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="description" content="Personal site of Michael Sarchet">
+    <link rel="canonical" href="http://msarchet.com/using-the-servicestack-redis-client/">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/main.css">
+
+</head>
+
+
+    <body>
+
+    <div id="header">
+  <span class="brand"><a href="/">msarchet.com</a></span>
+  <ul class="nav">
+    
+      <li class="nav-item">About</li>
+    
+      <li class="nav-item"></li>
+    
+      <li class="nav-item"></li>
+    
+  </ul>
+</div>
+
+
+    <div id="content">
+      <div class="post">
+
+  <h1>Using the ServiceStack Redis Client</h1>
+  <p class="meta">Jun 12, 2013</p>
+
+  <h1 id="using-the-servicestack-redis-client-to-work-with-redis-lists-servicestackredis">Using the ServiceStack Redis Client to Work with Redis Lists (ServiceStack.Redis)</h1>
+
+<p>I’m not going to focus on using Redis as a Cache, this is pretty straight foward and a lot of what I am going to talk about can be
+applied to using the Redis as a Cache.</p>
+
+<p>First: Familarize yourself with Redis.</p>
+
+<p>I would suggest checking out redis.io (the main redis site) and giving The Little Redis Book (http://openmymind.net/2012/1/23/The-Little-Redis-Book) a read.</p>
+
+<p>Redis is ‘just’ a key-value store, but it allows the values to be actual data structures instead of just strings. ServiceStack has taken this farther for us and provided serialization interfaces to allow us to use a Typed client to interact with redis without worrying about this ourselves.</p>
+
+<p>Second: Get Redis running locally</p>
+
+<p>The fastest way to do this is to download the latest version from https://github.com/dmajkic/redis/downloads and start the redis-server.exe on your machine.</p>
+
+<p>Third: All hail NuGet.</p>
+
+<p><code>Install-Package ServiceStack.Redis</code></p>
+
+<p>Fourth: Connecting to Redis</p>
+
+<p>ServiceStack has made this simple. The easiest way to do this is like this</p>
+
+<pre><code>using(var client = new RedisClient())
+{
+    //code goes here
+}
+</code></pre>
+
+<p>This works great but it creates a new client everytime we connect to redis. You can however do the following into your IoC container</p>
+
+<pre><code>Container.Register&lt;IRedisClientsManager&gt;(new BasicClientManager("http://localhost:6378"))  or
+Container.Register&lt;IRedisClientsManager&gt;(new PooledClientManager("http://localhost:6378")) 
+</code></pre>
+
+<p>then instead of calling <code>new RedisClient()</code> you can call <code>Container.Resolve&lt;IManagedRedisClients&gt;().GetClient()</code>!</p>
+
+<p>Which one should I use?
+Both of these implementations will pool your clients. <code>BasicClientManager</code>, is best when your redis server is on localhost <code>PooledClientManger</code>, is best when your reids service is on a remote machine.
+So now that you’ve got your application hooked up to redis what can you do?</p>
+
+<p>The simplest thing to do with Redis is just store and read some values.</p>
+
+<pre><code>using(var redis = new RedisClient())
+{
+    redis.SetEntry("name", "Michael Sarchet");
+    console.log(redis.GetEntry("name"));
+}
+What if we want to store a value that is a type
+
+public class DataType
+{
+    public string Name { get; set; }
+}
+ 
+using(var redis = new RedisClient())
+{
+    var client = redis.As&lt;DataType&gt;();
+    client.SetEntry("Data1", new DataType() { Name = "Michael" });
+    console.log(client.GetEntry("Data1").Name);
+}
+//Remember in a production environment you are going to want to use the IRedisClientsManager.GetClient() method, since this is the thread safe way to get a client. For now we can just use new RedisClient().
+</code></pre>
+
+<p>Now we’ve just stored a value with a type into Redis. This is done via the Asmethod on the client. This tells the client to serialize and deserialize the values as that type.</p>
+
+<p>If you open up the redis-cli and run</p>
+
+<pre><code>get Data1
+</code></pre>
+
+<p>you should see something that looks like</p>
+
+<pre><code>{\"Name\" : \"Michael\"}
+</code></pre>
+
+<p>This is becuase ServiceStack.Redis is serializing these values, and handling the deserialization on the read. This covers the basic use case for Redis, storing some data and reading it back from Redis. The client exposes most (if not all) of the redis command line actions directly. Play around with it and get a feel for how this will work in your application.</p>
+
+<p>Now that you are more familiar with how the RedisClient works directly we will look at using the List structure that redis provides. This is one of the more directly useful things that you can do via redis without getting into a lot of the specific redis functionality.</p>
+
+<p>So let’s look at persisting a larger more complex object and what we would need to do to access a list of these objects:</p>
+
+<pre><code>public class Customer
+{
+    public string Name { get; set; }
+    public string Phone { get; set; }
+    public string Address { get; set; }
+}
+ 
+public class CustomerAccess
+{
+    public static IList&lt;Customer&gt; Customers 
+    { 
+        get
+        {
+            using(var client = new RedisClient())
+            {
+ 
+                TClient = client.As&lt;Cusomter&gt;(); //woah I'll get to this don't worry
+                return TClient.Lists["cusomters"].ToList();
+            }
+        }
+    }
+ 
+    public static void AddCustomer(Customer customer)
+    {
+        using(var client = new RedisClient())
+        {
+            TClient = client.As&lt;Cusomter&gt;();
+            TClient.Lists["customers"].Add(customer);
+        }
+ 
+    }
+ 
+    public static bool RemoveCustomer(Customer customer)
+    {
+        using(var client = new RedisClient())
+        {
+            TClient = client.As&lt;Customer&gt;();
+            return TClient.Lists["cusomters"].Remove(customer);
+        }
+    }
+} What just happened?
+</code></pre>
+
+<p><code>client.As&lt;T&gt;</code> returns a IRedisTypedClient which just handles the serialization for us.</p>
+
+<p><code>TClient.Lists[key]</code> gives us access to an <code>IRedisList</code> (which is the wrapper for the internal Redis List data structure). <code>IRedisList&lt;T&gt;</code> implements <code>IList&lt;T&gt;</code> which lets us access it like a normal list.</p>
+
+<p>Internally ServiceStack is handling all actions to call these methods (proTip! most of these are native to redis  so it’s super fast)</p>
+
+<p>If you notice in the Customers Property I called <code>Tclient.Lists["customer"].ToList()</code>, this is because if you just return the <code>IRedisList</code> any time you act on it it will reopen a connection to redis, which can be kind of bad. Instead we are just getting a snapshot of the data at that time. However if you wanted and you ignored the <code>ToList()</code> you could add data and then get it and it will all come directly from redis, which can be useful in the right circumstances.</p>
+
+<p>My next post will cover the Set and Hash Implementations and some of the more powerful things you can do with those.</p>
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'msarchetblog';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+     
+
+</div>
+
+
+    </div>
+
+    
+
+    </body>
+</html>

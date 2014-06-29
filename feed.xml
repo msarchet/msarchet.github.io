@@ -1,0 +1,1209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>msarchet.com</title>
+    <description>Personal site of Michael Sarchet</description>
+    <link>http://msarchet.com/</link>
+    <atom:link href="http://msarchet.com/feed.xml" rel="self" type="application/rss+xml" />
+    
+      <item>
+        <title>Markdown As Views with BundlerMiddleware.Markdown</title>
+        <description>&lt;h1 id=&quot;bundlermiddlewaremarkdown&quot;&gt;BundlerMiddleware.Markdown&lt;/h1&gt;
+
+&lt;p&gt;See my previous &lt;a href=&quot;http://msarchet.com/using-the-asp-dot-net-bundling-pipeline-with-owin/&quot;&gt;post&lt;/a&gt; where I talk about using the &lt;code&gt;System.Web.Optimization&lt;/code&gt; pipeline in an OWIN middleware to simplify your single page apps. To continue on that idea I have created the &lt;code&gt;BundlerMiddleware.Markdown&lt;/code&gt; package for transforming Markdown files into HTML.&lt;/p&gt;
+
+&lt;h2 id=&quot;installation&quot;&gt;Installation&lt;/h2&gt;
+
+&lt;p&gt;&lt;code&gt;Install-Package BundlerMiddleware.Markdown&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;usage&quot;&gt;Usage&lt;/h2&gt;
+
+&lt;p&gt;Using the markdown middleware is as simple as using the normal &lt;code&gt;BundlerMiddleware&lt;/code&gt;. First you need to set up some routes that point at your Markdown files. Then you need to include the middleware in your OWIN startup class.&lt;/p&gt;
+
+&lt;h3 id=&quot;routes&quot;&gt;Routes&lt;/h3&gt;
+
+&lt;p&gt;One thing to note is that in this version BundlerMiddleware and BundlerMiddleware.Markdown need seperate route tables to run side by side without route conflicts.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;While you could use the same &lt;code&gt;BundlerRouteTable&lt;/code&gt; it will cause anything to be served as Markdown or HTML. I’m working on some API cleanups to make this feasible. For now I suggest making a static &lt;code&gt;BundlerRouteTable&lt;/code&gt; in your config file&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Add some routes to the &lt;code&gt;BundlerRouteTable&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;  // create a static table for the markdown routes
+public static BundlerRouteTable MarkdownRoutes = new BundlerRouteTable();
+
+// add a route to a markdown file
+MarkdownRoutes.FromVirtualPath(&quot;~/docs/doc1.md&quot;, &quot;/docs/doc1.md&quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;startup&quot;&gt;Startup&lt;/h3&gt;
+
+&lt;p&gt;Then wire up in your &lt;code&gt;Startup.cs&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;  app.UseBundlerMarkdown(MarkdownRoutes);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;templating&quot;&gt;Templating&lt;/h3&gt;
+
+&lt;p&gt;If you want to apply some global styles to your markdown files you can create a template file that has a&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;!!block content!!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;inside the body tag of the document. This is where the markdown content will be injected.&lt;/p&gt;
+
+&lt;p&gt;A completed file could look like&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;doctype html&amp;gt;
+&amp;lt;head&amp;gt;
+    &amp;lt;title&amp;gt;Markdown&amp;lt;/tile&amp;gt;
+    &amp;lt;!-- using the bundling is allowed as well --&amp;gt;
+    !!styles:~/styles/main!!
+&amp;lt;/head&amp;gt;
+&amp;lt;body&amp;gt;
+	!!block content!!
+	!!scripts:~/bundles/main!!
+&amp;lt;/body&amp;gt;
+&amp;lt;/html&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;To make use of the template file, instead of doing &lt;code&gt;app.UseBundlerMarkdown&lt;/code&gt; you should use &lt;code&gt;app.UseBundlerMarkdownWithTemplate(MarkdownRoutes, &quot;~/template.html&quot;);&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;considerations&quot;&gt;Considerations&lt;/h2&gt;
+
+&lt;p&gt;BundlerMiddleware and BundlerMiddleware.Markdown are still not a 1.x release so do expect API changes and potential bugs. However I do appreciate pull requests or issues on the &lt;a href=&quot;http://github.com/msarchet/bundler&quot;&gt;github repo&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;A shorter form of this is available on the project page at &lt;a href=&quot;msarchet.com/Bundler&quot;&gt;msarchet.com/Bundler&lt;/a&gt;&lt;/p&gt;
+</description>
+        <pubDate>Sat, 29 Mar 2014 11:43:00 -0700</pubDate>
+        <link>http://msarchet.com/markdown-as-views-with-bundlermiddleware-dot-markdown/</link>
+        <guid isPermaLink="true">http://msarchet.com/markdown-as-views-with-bundlermiddleware-dot-markdown/</guid>
+      </item>
+    
+      <item>
+        <title>Using the ASP.NET Bundling Pipeline with OWIN</title>
+        <description>&lt;h1 id=&quot;using-the-aspnet-bundling-pipeline-with-owin&quot;&gt;Using the ASP.NET Bundling Pipeline with OWIN&lt;/h1&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;To start off this is still running on top of IIS, I haven’t fully done the work to make an extensible version that runs without &lt;code&gt;System.Web&lt;/code&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&quot;why&quot;&gt;Why&lt;/h2&gt;
+
+&lt;p&gt;There is has been a large shift to building client heavy web applications, or Single Page Applications, using frameworks like &lt;a href=&quot;angularjs.org&quot;&gt;Angular&lt;/a&gt;. With this shift a large number of developers have begun exposing API’s and building their applications by consuming those API’s. However there is still a trend of using MVC frameworks to deliver what should effecitvely be static HTML to the browser.&lt;/p&gt;
+
+&lt;p&gt;Currently bundling support in ASP.NET relies on the &lt;code&gt;System.Web.Optimzation&lt;/code&gt; package, not on MVC or Razor as you would think based off how the tool is presented. However since MVC is the normal to serve HTML from an ASP.NET application a lot of people will serve their base page for their application as a *.cshtml file off of a MVC Controller. This requires setting up the routing, a controller, and view to get out what is effecitvely static HTML.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://owin.org&quot;&gt;Owin&lt;/a&gt; is now part of the defacto pipeline for handling requests in ASP .NET applications, so shouldn’t we be able to hook in when a request comes and inject our bundles and return the static HTML back to the consumer.&lt;/p&gt;
+
+&lt;h2 id=&quot;what&quot;&gt;What&lt;/h2&gt;
+
+&lt;p&gt;What if you set your bundling up as normal, added a route pointing to the files you wanted to use the bundling on, and the application served back the HTML.&lt;/p&gt;
+
+&lt;p&gt;What would this look like :&lt;/p&gt;
+
+&lt;h3 id=&quot;appviewsindexhtml&quot;&gt;/App/Views/index.html&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;html&amp;gt;
+	&amp;lt;head&amp;gt;
+		&amp;lt;title&amp;gt; Some Page &amp;lt;/title&amp;gt;
+		!!styles:~bundle/styles!!
+	&amp;lt;/head&amp;gt;
+	&amp;lt;body&amp;gt;
+		&amp;lt;div&amp;gt;Things!&amp;lt;/div&amp;gt;
+		!!scripts:~bundles/scripts!!
+	&amp;lt;/body&amp;gt;
+&amp;lt;/html&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;globalasaxcs&quot;&gt;global.asax.cs&lt;/h3&gt;
+
+&lt;p&gt;Next we need to add the routes and the files that we want to transform and serve for those routes. To do this we add new &lt;code&gt;BundlerRoute&lt;/code&gt; to the static &lt;code&gt;BundlerRoutes.Routes&lt;/code&gt; collection. A &lt;code&gt;BundlerRoute&lt;/code&gt; is is constructed with a route and a file path. The &lt;code&gt;BundlerMiddleware.System.Web&lt;/code&gt; package includes an extension method for adding routes that are resolved from a Virtual Path. &lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;BundlerRoutes.Routes.FromVirtualPath(&quot;/&quot;, &quot;~/App/Views/index.html&quot;));
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Alternatively you can use the pattern that Web API or the BundleCollection uses and pass the BunderRoutes.Routes into a static function to create the routes.&lt;/p&gt;
+
+&lt;h3 id=&quot;startupcs&quot;&gt;Startup.cs&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;app.UseBundlerMiddlewareForIIS();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This is an extension method for making use of the &lt;code&gt;DefaultFileResolver&lt;/code&gt; and &lt;code&gt;DefaultBundleResolver&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;what-is-actually-happening&quot;&gt;What is actually happening&lt;/h2&gt;
+
+&lt;p&gt;BundlerMiddleware checks each request to see if the request matches a registered route in its table. If the route matches it reads the file, calls into the System.Web.Optimization library to get out the appropriate tags for the bundle that it matched, writes the tags into the html and returns&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;html&amp;gt;
+	&amp;lt;head&amp;gt;
+		&amp;lt;title&amp;gt; Some Page &amp;lt;/title&amp;gt;
+		&amp;lt;link rel=&quot;stylesheet&quot; src=&quot;bundles/main.min.css&quot; /&amp;gt;
+	&amp;lt;/head&amp;gt;
+	&amp;lt;body&amp;gt;
+		&amp;lt;div&amp;gt;Things!&amp;lt;/div&amp;gt;
+		&amp;lt;script src=&quot;bundles/scripts.js?v=&amp;lt;hash&amp;gt;&quot; type=&quot;text/javascript&quot; /&amp;gt;
+	&amp;lt;/body&amp;gt;
+&amp;lt;/html&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Or injects appropriately the debug tags if you are running in debug mode&lt;/p&gt;
+
+&lt;h2 id=&quot;how-can-you-use-it&quot;&gt;How can you use it&lt;/h2&gt;
+
+&lt;p&gt;You can use this by installing the nuget package&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;BundlerMiddleware.System.Web
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This provides the necessary code to use BundlerMiddleware with the standard &lt;code&gt;System.Web.Optimization&lt;/code&gt; bundling and minification hooks&lt;/p&gt;
+
+&lt;h2 id=&quot;what-if-you-dont-want-to-use-systemweb&quot;&gt;What if you don’t want to use System.Web&lt;/h2&gt;
+
+&lt;p&gt;If you don’t want to or can’t use &lt;code&gt;System.Web&lt;/code&gt; you should just install &lt;code&gt;BundlerMiddleware&lt;/code&gt;. When using the base library you will need to create your own implementation of &lt;code&gt;IFileResolver&lt;/code&gt; and &lt;code&gt;IBundleResolver&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Example without implementation&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class CustomFileResolver : IFileResolver {}
+
+public class CustomBundleResolver : IBundleResolver {} 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;then in your &lt;code&gt;Startup.cs&lt;/code&gt; you would just do&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;app.Use(typeof(BundlerMiddleware), new CustomFileResolver(), new CustomBundleResolver())
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+        <pubDate>Fri, 31 Jan 2014 08:00:00 -0800</pubDate>
+        <link>http://msarchet.com/using-the-asp-dot-net-bundling-pipeline-with-owin/</link>
+        <guid isPermaLink="true">http://msarchet.com/using-the-asp-dot-net-bundling-pipeline-with-owin/</guid>
+      </item>
+    
+      <item>
+        <title>HyperApi</title>
+        <description>&lt;p&gt;HyperApi - A WebAPI controller abstraction for better REST in .NET&lt;/p&gt;
+
+&lt;h2 id=&quot;get-your-domain-logic-out-of-your-api&quot;&gt;Get your domain logic out of your api&lt;/h2&gt;
+
+&lt;p&gt;The out of the box File -&amp;gt; New -&amp;gt; ApiController, promotes a model that immediately couples your logic into your controllers.
+If you are using any kind of DAL, Repository pattern, or whatever you want that seperates your Business Logic from your application logic, your &lt;code&gt;ApiController&lt;/code&gt; should be following the same model.&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at very coupled controller&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class PersonController : ApiController
+{
+	private PersonContext personContext;
+
+	public PersonController(PersonContext personContext)
+	{
+		this.personContext = personContext;
+	}
+
+	public Person Get(int id)
+	{
+		var person = personContext.Persons.FirstOrDefault(p =&amp;gt; p.Id == id);
+
+		if(person == null) { return HttpStatusCode.NotFound; }
+
+		return person;
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Let’s do some refactoring and put getting persons into a repository pattern&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public interface IRepository&amp;lt;TEntity&amp;gt;
+{
+	TEntity ById(int id);
+}
+
+public class PersonRepository : IRepository&amp;lt;Person&amp;gt;
+{
+	private readonly PersonContext personContext;
+
+	public PersonRepository(PersonContext personContext)
+	{
+		this.personContext = personContext;
+	}
+
+	public Person ById(int id)
+	{
+		this.personContext.Persons.FirstOrDefault(p.Id == id);
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now we can make our controller look as follows&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class PersonController : ApiController
+{
+	private readonly PersonRepository personRepository;
+
+	public PersonController(PersonRepository personRepository)
+	{
+		this.personRepository = personRepository;
+	}
+
+	public Person Get(int id)
+	{
+		var person = personRepository.ById(id);
+
+		if(person == null) { return HttpStatusCode.NotFound;}
+
+		return person;
+	}
+}	
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Unfortunately we really didn’t get anywhere, our controllers still care a lot about what is going on, and different entities are going to have different success and failure scenarios.&lt;/p&gt;
+
+&lt;h2 id=&quot;what-if-we-made-a-generic-controller&quot;&gt;What if we made a generic controller?&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code&gt;public class GenericController&amp;lt;TEntity, TRepository&amp;gt; : ApiController
+{
+	protected readonly TRepository repository;
+
+	public GenericController(TRepository repository)
+	{
+		this.repository = repository;
+	}
+
+	public TEntity Get(int id)
+	{
+		var entity = repository.ById(id);
+
+		if(entity == null) { return HttpStatusCode.NotFound; }
+
+		return entity;
+	}
+}
+
+public class PersonController : GenericController&amp;lt;Person, PersonRepository&amp;gt;
+{
+	public PersonController(PersonRepository personRepository) : base(personRepository) {}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;inheritance&quot;&gt;Inheritance!&lt;/h3&gt;
+
+&lt;p&gt;This still poses a few problems however:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1. What if our entities have a non-int id?
+2. What if our entities failure cases aren't the same?
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Making the id look up generic solves the problem fairly easily&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code&gt;IRepository&amp;lt;TEntity&amp;gt;&lt;/code&gt; becomes &lt;code&gt;IRepository&amp;lt;TEntity, TEntityId&amp;gt;&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;TEntity ById(int id)&lt;/code&gt; becomes &lt;code&gt;TEntity ById(TEntityId id)&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;GenericController&amp;lt;TEntitiy, TRepository&amp;gt;&lt;/code&gt; becomes &lt;code&gt;GenericController&amp;lt;TEntity, TRepository, TEntitiyId&amp;gt;&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;TEntity Get(int id)&lt;/code&gt; becomes &lt;code&gt;TEntity Get(TEntityId id)&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Now we can use whatever kind of key we feel like, even classes!&lt;/p&gt;
+
+&lt;p&gt;But that still doesn’t eleminate the problem that we have in our controller, where the controller has to know the specifics of what the response of the repository means in the context of how it should serve the HTTP request to the client.&lt;/p&gt;
+
+&lt;p&gt;Enter a pattern that I’m not sure what the name of it is, but it feels like an envelope to me.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public interface IResopnseEnvelope&amp;lt;T&amp;gt;
+{
+	T Result {get; private set;}
+	bool IsSuccessful {get; private set;}
+	string Details {get; private set;}
+}
+
+public class ResopnseEnvelope&amp;lt;T&amp;gt;
+{
+	T Result {get; private set;}
+	bool IsSuccessful {get; private set;}
+	string Details {get; private set;}
+
+	private ResponseEnvelope() {}
+
+	public static ResponseEnvelope&amp;lt;T&amp;gt; Successful(T result, string details)
+	{
+		return new ResponseEnvelope
+		{
+			Result = result,
+			IsSuccessful = true,
+			Details = details
+		}
+	}
+
+	public static ResponseEnvelope&amp;lt;T&amp;gt; Unsuccessful(T result, string details)
+	{
+		return new ResponseEnvelope
+		{
+			Result = result,
+			IsSuccessful = false,
+			Details = details
+		}
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;but-why-the-extra-abstraction&quot;&gt;But why the extra abstraction?&lt;/h2&gt;
+
+&lt;p&gt;I’m of the mindset (currently) that my API shouldn’t care about why something was successful or unsuccessful, it should only care about sending the proper HTTP Resopnse. This provides a generic way of looking at a response and determing which &lt;code&gt;HttpStatusCode&lt;/code&gt; should be sent back to the user, what information we actually want to send to them, and maybe if we think it’s useful send them some details of why.&lt;/p&gt;
+
+&lt;h3 id=&quot;so-what-do-we-do-now&quot;&gt;So what do we do now?&lt;/h3&gt;
+
+&lt;p&gt;First thing is we need our repository to go ahead and wrap the result up into a ResponseEnvelope&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public IRepository&amp;lt;TEntitiy, TEntityId&amp;gt;
+{
+	ResponseEnvelope&amp;lt;TEntity&amp;gt; ById(TEntitiyId id)
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;and in our repository just change&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Person ById(int id) to 
+
+ResponseEnvelope&amp;lt;Person&amp;gt; ById(int id)
+{
+	var person = personContext.Persons.FirstOrDefault(p =&amp;gt; p.Id == id);
+
+	if(person != null)
+	{
+		return ResponseEnvelope&amp;lt;Person&amp;gt;.Successful(person, &quot;Yay!&quot;);
+	}
+
+	return ResponseEnvelope&amp;lt;Person&amp;gt;.Unsuccessful(person, &quot;Boo :(&quot;);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Instead of having our controllers sending responses of type &lt;code&gt;TEntity&lt;/code&gt; we will have our controllers send responses of type &lt;code&gt;HttpResponseMessage&lt;/code&gt;, because that’s really what they are doing anyways.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class GenericController&amp;lt;TEntity, TRespository, TEntityId&amp;gt;
+{
+	private readonly TRepository repository;
+
+	public GenericController(TRepository repository)
+	{
+		this.repository = repository;
+	}
+
+	public HttpResponseMessage Get(TEntityId id)
+	{
+		// Remember GetById now return a ResponseEnvelope&amp;lt;TEntity&amp;gt;
+		var envelope = repository.GetById(id);
+
+		if(envelope.IsSuccessful)
+		{
+			return Request.CreateResponse(HttpStatusCode.OK, envelope.Result);
+		}
+
+		return Request.CreateErrorResponse(HttpStatusCode.NotFound, envelope.Details);		
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;but-wait-theres-more&quot;&gt;But wait there’s more!&lt;/h2&gt;
+
+&lt;p&gt;If we look at what an ApiController is really doing we start to notice an emerging pattern.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Request comes in and is routed to the appropriate controller&lt;/li&gt;
+  &lt;li&gt;Request is deserialized in some manner and routed to the appropriate handler&lt;/li&gt;
+  &lt;li&gt;The handler is invoked and then calls some method on a repository&lt;/li&gt;
+  &lt;li&gt;A Response is returned based on some information&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;So really we could just have a basic controller that looks someting like this&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class BaseGenericController&amp;lt;TEntity, TRepository, TEntityId&amp;gt; : ApiController
+	where TRepository : IRepository&amp;lt;TEntitiy, TEntityId&amp;gt;
+{
+	protected readonly TRepository repository;
+
+	public BaseGenericController(TRepository repository)
+	{
+		this.repository = repository;
+	}
+
+	protected HttpResponseMessage HandleRequest(ResponseEnvelope&amp;lt;TEntity&amp;gt; handler, HttpStatusCode success, HttpStatusCode failed)
+	{
+		var envelope = handler.Invoke();
+
+		if(envelope.IsSuccessful)
+		{
+			return Request.CreateResponse(success, envelope.Result);
+		}
+
+		return Request.CreateErrorResponse(failed, envelope.Details);
+	}
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then implement our controllers as follows&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class PersonController : BaseGenericController&amp;lt;Person, PersonRepository, int&amp;gt;
+{
+	public PersonController(PersonRepository personRepository) : base(personRepository){}
+
+	public HttpResponseMessage Get(int id)
+	{
+		return HandleRequest(personRepository.GetById(id), HttpStatusCode.OK, HttpStatusCode.NotFound);
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You could take this one step further and make a &lt;code&gt;GenericController&lt;/code&gt; that just uses conventions so you don’t actually have to write anything. But sometimes you don’t want every HTTP verb on every controller.&lt;/p&gt;
+
+&lt;p&gt;As long as your repository is returning results wrapped in a ResponseEnvelope, you aren’t caring about your business logic in your api.&lt;/p&gt;
+
+&lt;h2 id=&quot;testing&quot;&gt;Testing!&lt;/h2&gt;
+
+&lt;p&gt;A good abstraction should let you see where your concerns lay. In this case it’s pretty obvious that as long as our BaseGenericController understands what to do with a ResponseEnvelope it’s going to do the right things. Also as long as our repositories know how to handle the cases for each of the methods that they implement we only have the care about the logic inside of them. We don’t have to test that our ApiControllers know how to handle null references, because they shouldn’t be getting any in the first place.&lt;/p&gt;
+
+&lt;p&gt;Go forth and simplify.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 03 Oct 2013 15:11:00 -0700</pubDate>
+        <link>http://msarchet.com/hyperapi/</link>
+        <guid isPermaLink="true">http://msarchet.com/hyperapi/</guid>
+      </item>
+    
+      <item>
+        <title>Keeping Your Git Forks In Sync</title>
+        <description>&lt;h2 id=&quot;keep-those-forks-in-sync&quot;&gt;Keep Those Forks In Sync&lt;/h2&gt;
+
+&lt;p&gt;Have you ever tried to submit a pull request to a project on Github to only get the comment.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Hey your code can’t be merged can you get latest and resubmit?&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;If you didn’t have a fork, which is not exactly a branch, but looks like one. But instead had a branch&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;git rebase -i branch_from_whence_you_forked
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Since you do have a fork, you look on Github for the &lt;em&gt;Sync My Fork&lt;/em&gt; button and find none.&lt;/p&gt;
+
+&lt;h2 id=&quot;solution&quot;&gt;Solution&lt;/h2&gt;
+
+&lt;p&gt;After dealing with this myself for the cycle of 2-3 reforking projects to push my changes and keep things latest, I settled on the following pattern.&lt;/p&gt;
+
+&lt;h3 id=&quot;set-up&quot;&gt;Set Up&lt;/h3&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;Fork as normal&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Clone your local repo&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+ 		git clone github.com/myforkroute
+
+&lt;ol&gt;
+  &lt;li&gt;Create a Branch called fork&lt;/li&gt;
+&lt;/ol&gt;
+
+ 		git branch Fork
+
+&lt;ol&gt;
+  &lt;li&gt;Update my remotes&lt;/li&gt;
+&lt;/ol&gt;
+
+ 		// Here we update origin to point to the repo we forked
+
+ 		git remote set-url origin github.com/forkedroute
+
+ 		// Here we set up a new remote that points to my fork
+
+ 		git remote add fork github.com/myforkroute
+
+&lt;h3 id=&quot;workflow&quot;&gt;Workflow&lt;/h3&gt;
+
+&lt;p&gt;Now keeping your repo up to date with the repo you forked is as simple as&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;git branch master
+
+git pull origin master
+
+git branch fork
+
+git rebase master
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I would still suggest working your pull request in branches off of the fork branch and doing the same with them so&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;git branch my_pull_request
+
+// do some work
+
+// update fork if you need to 
+
+// switch back to your pull request branch
+
+git rebase fork
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+        <pubDate>Sat, 29 Jun 2013 11:00:00 -0700</pubDate>
+        <link>http://msarchet.com/keeping-your-git-forks-in-sync/</link>
+        <guid isPermaLink="true">http://msarchet.com/keeping-your-git-forks-in-sync/</guid>
+      </item>
+    
+      <item>
+        <title>Why diff tools aren't the fix to the CL/RF git issues</title>
+        <description>&lt;h2 id=&quot;why-diff-tools-arent-the-fix-to-the-clrf-git-issues&quot;&gt;Why diff tools aren’t the fix to the CL/RF git issues&lt;/h2&gt;
+
+&lt;p&gt;Scott Hanselman had a great post today on the problem with line endings in git.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://www.hanselman.com/blog/YoureJustAnotherCarriageReturnLineFeedInTheWall.aspx&quot;&gt;Hanselman Blog&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;People in the comments seem to think that this is a problem solved by a diff tool. This has very little to do with the diff view, and more to do with the fact that this is a systemic problem in git. The fact that you even have to decide what type of line endings to set is slightly ridiculous in this day and age. Especially for languages where this has absolutely zero affect on the code.&lt;/p&gt;
+
+&lt;p&gt;However as Scott points out there are fixes, but the real thing is that we shouldn’t have to be dealing with these fixes in the first place. A point that many missed.&lt;/p&gt;
+
+</description>
+        <pubDate>Wed, 12 Jun 2013 14:12:00 -0700</pubDate>
+        <link>http://msarchet.com/why-diff-tools-arent-the-fix-to-the-cl-slash-rf-git-issues/</link>
+        <guid isPermaLink="true">http://msarchet.com/why-diff-tools-arent-the-fix-to-the-cl-slash-rf-git-issues/</guid>
+      </item>
+    
+      <item>
+        <title>Using ServiceStack.Redis Part 2 Sets and Hashes</title>
+        <description>&lt;h2 id=&quot;servicestackredis-sets-and-hashses&quot;&gt;ServiceStack.Redis Sets and Hashses&lt;/h2&gt;
+
+&lt;p&gt;In my last post about redis I talked about getting set up with Redis and using the ServiceStack.Redis IRedisList to empower yourself as a developer.&lt;/p&gt;
+
+&lt;p&gt;This post is a quick overview of the IRedisSet&lt;t&gt; and IRedisHash&amp;lt;TKey, T&amp;gt; that are available in ServiceStack.Redis. I'm not going to spend much time talking about the non-generic implementation of both of these interfaces since for the most part the function like calling them with T as string&lt;/t&gt;&lt;/p&gt;
+
+&lt;p&gt;Set and Hash are much more powerful data models for manipulating your data in Redis directly&lt;/p&gt;
+
+&lt;h3 id=&quot;sets&quot;&gt;Sets&lt;/h3&gt;
+
+&lt;p&gt;If you take a quick glance at redis sets they don’t look that different from lists. In fact when you get data back from &lt;code&gt;ServiceStack.Redis&lt;/code&gt; you get it as an &lt;code&gt;IList&lt;/code&gt; which is fantastic, but there are a few important things to know.&lt;/p&gt;
+
+&lt;p&gt;If you’re using the redis set operations, (sort, intersect, etc) you will find that you will have problems with types that have over loaded equaility. This is because these operations are actually being done in redis, and you are comparing them byte to byte (in most cases).So Sets are great if you are using a primative type that exists in redis.&lt;/p&gt;
+
+&lt;p&gt;PROTIP: Set’s are great but by nature they are going to take up more memory than just a list, this is something to think about if you don’t really need the power in the set.&lt;/p&gt;
+
+&lt;p&gt;How do you make a set and manipulate it:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;//set up the connection
+//cast it into the Generic type we wish to use
+using(var redis = new RedisClient())
+using(var client = redis.As&amp;lt;string&amp;gt;)
+{
+    //Let's first get a reference to a set that we want to manipulate
+ 
+    //As most ServiceStack.Redis actions this requires some kind of key
+    var set = client.Sets[&quot;Set&quot;];
+ 
+    set.Add(&quot;bill&quot;);
+    set.Add(&quot;bob&quot;);
+    set.Add(&quot;jeremey&quot;);
+ 
+    var otherSet = client.Sets[&quot;OtherSet&quot;];
+ 
+    otherSet.Add(&quot;bill&quot;);
+    otherSet.Add(&quot;jeb&quot;);
+    otherSet.Add(&quot;kermin&quot;); 
+ 
+    //HERE ARE SOME THINGS WE CAN DO
+ 
+    //Returns the intersect of the sets
+    //bill
+    var intersect = set.GetIntersectFromSets(otherSet);
+ 
+    //Returns a HashSet&amp;lt;T&amp;gt; containing unique items from both sets
+    //bill
+    //bob
+    //jeremy
+    //jeb
+    //kermin
+    var union = set.GetUnionFromSets(otherSet);
+ 
+    //Returns a HashSet&amp;lt;T&amp;gt; containing the differences between the sets
+    //bob
+    //jeremey
+    //jeb
+    //kermin
+    var differences = set.GetDifferencesFromSets(otherSet);
+ 
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;hashes&quot;&gt;Hashes&lt;/h3&gt;
+
+&lt;p&gt;What’s so great about Hashes? Well a lot of things but one of the best things to know is that a hash is basically a Dictionary (in the case of the non-generic hash it’s just a Dictionary). This makes the hash very useful for storing objects if you need to manipulate individual properties on the object directly and you don’t want to manipulate the entire object.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;///boilerplateAction you've seen this before
+using(var redis = new RedisClient())
+using(var client = redis.As&amp;lt;string&amp;gt;())
+{
+    //so with hashes you have to get a hash first before you can manipulate it
+    var hash = client.GetHash&amp;lt;string&amp;gt;(&quot;hashID&quot;);
+ 
+    hash.SetValue(&quot;key&quot;, &quot;value&quot;);
+ 
+    //get an individual value from a hash
+    var individualValue = hash.GetVlauesFromHash(&quot;key&quot;);
+ 
+    hash.SetValue(&quot;otherKey&quot;, &quot;value&quot;);
+ 
+    //get all the values from a hash
+    var allValues = hash.GetAllEntriesFromHash();
+ 
+ 
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The main thing to remember with hashes is that you first have to get the hash before you can manipulate values in the hash. This is because all of the hash methods are extensions of &lt;code&gt;IRedisHash&amp;lt;TKey, T&amp;gt;&lt;/code&gt; for the generic hash.&lt;/p&gt;
+
+&lt;p&gt;This should provide you with an idea of where to get started when using ServiceStack.Redis to manipulate Sets and Hashes. These are powerful tools that can really allow you to quickly manipulate your data and make it available across your application.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Jun 2013 14:11:00 -0700</pubDate>
+        <link>http://msarchet.com/using-servicestack-redis-part-2-sets-and-hashes/</link>
+        <guid isPermaLink="true">http://msarchet.com/using-servicestack-redis-part-2-sets-and-hashes/</guid>
+      </item>
+    
+      <item>
+        <title>SignalR - HAL To Use It</title>
+        <description>&lt;h2 id=&quot;signalr---hal-to-use-it&quot;&gt;SignalR - HAL to use it&lt;/h2&gt;
+
+&lt;p&gt;You probably shouldn’t be using it without a good reason, but if you have anything that you need to update in “real time” in your application you should use it.&lt;/p&gt;
+
+&lt;p&gt;SignalR for those who don’t know is&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;ASP.NET SignalR is a new library for ASP.NET developers that makes it incredibly simple to add real-time web functionality to your applications. What is “real-time web” functionality? It’s the ability to have your server-side code push content to the connected clients as it happens, in real-time. - SignalR&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;SignalR is an official Microsoft project.&lt;/p&gt;
+
+&lt;h3 id=&quot;installation&quot;&gt;Installation&lt;/h3&gt;
+
+&lt;p&gt;You can install it with&lt;/p&gt;
+
+&lt;p&gt;Install-Package Microsoft.AspNet.SignalR -pre&lt;/p&gt;
+
+&lt;p&gt;Warning it’s still in RC but it’s stable&lt;/p&gt;
+
+&lt;h3 id=&quot;hello-dave&quot;&gt;Hello, Dave&lt;/h3&gt;
+
+&lt;p&gt;The fastest way to use SignalR is to&lt;/p&gt;
+
+&lt;p&gt;Add New File -&amp;gt; Class&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class MyHub : Hub
+{
+  public string Hello()
+  {
+    return &quot;Hello, Dave.&quot;;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then in your &lt;code&gt;Global.ascx&lt;/code&gt; add this line&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;RouteTable.Routes.MapHubs();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;(For people familiar with previously using SignalR, it no longer generates a javascript proxy for you more on this later)&lt;/p&gt;
+
+&lt;p&gt;Then in a view add the appropriate scripts&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;script type=&quot;text/javascript&quot; src=&quot;~/Scripts/jquery-1.9.0.js&quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script type=&quot;text/javascript&quot; src=&quot;~/Scripts/jquery.signalR-1.0.0-rc2.min.js&quot;&amp;gt;&amp;lt;/script&amp;gt;
+ 
+&amp;lt;script&amp;gt;
+  $(function() { 
+    var connection = $.hubConnection(); //this is a connection specifically for a hub
+    var proxy = connection.createHubProxy('myHub'); //note the capitalization
+ 
+    //We must start the connection before we do anything with it
+    connection.start();
+ 
+    //again note capitalization
+    proxy.invoke('hello').done(function(result) { 
+      alert(result);
+    });
+  }):
+&amp;lt;/script&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This should prompt an alert with “Hello, Dave.”&lt;/p&gt;
+
+&lt;h3 id=&quot;interact&quot;&gt;Interact&lt;/h3&gt;
+
+&lt;p&gt;Now adding the method&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public void OpenThePodBayDoors()
+{
+  Clients.Caller.response('I'm sorry Dave I can't do that');
+}
+ 
+Add the following to your view
+
+&amp;lt;button id=&quot;clicker&quot;&amp;gt;Please&amp;lt;/button&amp;gt;
+Add to your script section
+
+$('#clicker').bind('click', function() { 
+  proxy.invoke('openThePodBayDoors');
+});
+ 
+proxy.on('response', function(message) { 
+  alert(message); 
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;So in the above examples what we have done is created a proxy to our hub, via the createHubProxy(hubName) call.
+Bound to specific server raised events with proxy.on(event, callback) and invoked events from the client with `proxy.invoke(‘event’, data);&lt;/p&gt;
+
+&lt;h3 id=&quot;using-a-generated-proxy&quot;&gt;Using A Generated Proxy&lt;/h3&gt;
+
+&lt;p&gt;If we change the MapHubs call to contain the options to generate the Javascript Proxy for us we can change our code to look like this&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;RouteTable.Routes.MapHubs(new HubConfiguration() { EnableJavaScriptProxies = true });
+
+&amp;lt;script&amp;gt;
+  $(function() { 
+    var connection = $.connection.hub(); 
+    var hub = $.connection.myHub;
+ 
+    //Again we must start the connection before we do anything with it
+    connection.start();
+ 
+ 
+    hub.server.hello().done(function(result) { 
+      alert(result);
+    });
+ 
+    $('#clicker').bind('click', function() { 
+      hub.server.openThePodBayDoors();
+    });
+ 
+    hub.client.response = function(message) { 
+      alert(message); 
+    };
+ 
+  }):
+&amp;lt;/script&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In this scenario we have two properties on our hub proxy which is created under $.connection.hubName (in this case hubName is myHub), client and server, which seperate the client and server methods from each other. We then can invoke server side methods, or set client side methods to a callback.&lt;/p&gt;
+
+&lt;p&gt;Notice - other than the change to the MapHubs call there is no change to our Hub.&lt;/p&gt;
+
+&lt;h3 id=&quot;groups&quot;&gt;Groups&lt;/h3&gt;
+
+&lt;p&gt;SignalR contains the ability to assign a connection to a Group. The best thing to know about groups is that they are effectively channels that messages are only sent to clients that are in that channel.&lt;/p&gt;
+
+&lt;p&gt;The api for groups is as follows&lt;/p&gt;
+
+&lt;p&gt;Groups.Add(string ConnectionId, string GroupName)&lt;/p&gt;
+
+&lt;p&gt;Groups.Remove(string ConnectionId, string GroupName)&lt;/p&gt;
+
+&lt;p&gt;A thing to remember is that SignalR doesn’t persist anything, so it’s up to you if you want to be able to access who is in a group.&lt;/p&gt;
+
+&lt;p&gt;A good way to use groups is for something like a chat room.&lt;/p&gt;
+
+&lt;p&gt;public void JoinRoom(string room)
+  {
+    //Context.ConnectionId is the ConnectionId of the person who called the method
+    Groups.Add(Context.ConnectionId, room);
+  }&lt;/p&gt;
+
+&lt;p&gt;public void LeaveRoom(string room)
+  {
+    Groups.Remove(Context.ConnectionId, room);
+  }&lt;/p&gt;
+
+&lt;p&gt;public void SendMessage(string room, string message)
+  {
+    Clients.Groups(room).newMessage(message); 
+  }&lt;/p&gt;
+
+&lt;p&gt;There is nothing to be done to specifically handle groups on the client end but the code would look similar to&lt;/p&gt;
+
+&lt;p&gt;function joinRoom(roomName) {
+    proxy.invoke(‘joinRoom’, roomName);
+  }&lt;/p&gt;
+
+&lt;p&gt;function leaveRoom(roomName) {
+    proxy.invoke(‘leaveRoom’, roomName);
+  }&lt;/p&gt;
+
+&lt;p&gt;proxy.on(‘newMessage’, function(message) { 
+    alert(message);
+  });&lt;/p&gt;
+
+&lt;h3 id=&quot;closing-the-doors&quot;&gt;Closing the Doors&lt;/h3&gt;
+
+&lt;p&gt;Hopefully this has provided you with a brief glance of what is capable in SignalR via the javascript client (at least for this post). I plan to cover more advanced use of SignalR and using it with other Clients in the near future.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Jun 2013 14:11:00 -0700</pubDate>
+        <link>http://msarchet.com/signalr-hal-to-use-it/</link>
+        <guid isPermaLink="true">http://msarchet.com/signalr-hal-to-use-it/</guid>
+      </item>
+    
+      <item>
+        <title>KnockoutJS The Power of if</title>
+        <description>&lt;h2 id=&quot;to-if-or-ifnot-that-is-the-question&quot;&gt;To If or IfNot That is the Question&lt;/h2&gt;
+
+&lt;p&gt;Knockoutjs is a fantastic library for building single page applications and for making use of the MVVM in your javascript heavy web pages. Something that is over looked a lot when talking about knockout is the if and ifnot bindings.&lt;/p&gt;
+
+&lt;h3 id=&quot;what-does-if-do&quot;&gt;What Does if Do?&lt;/h3&gt;
+
+&lt;p&gt;From the docs&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;The if binding causes a section of markup to appear in your document (and to have its data-bind attributes applied), only if a specified expression evaluates to true (or a true-ish value such as a non-null object or nonempty string).&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;This is an extremely powerful feature of knockout, some reasons:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;It allows you to have conditional DOM elements without caring if the property is defined&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;It allows you to have large collections and only render the current active one&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;It allows you to speed up your page rendering time&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Let’s discuss:&lt;/p&gt;
+
+&lt;p&gt;Say you have the following ViewModel that has 1 Million child items&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;var data = function() { 
+  var self = this;
+ 
+  self.items = ko.observableArray();
+  self.selectedItem = ko.observable();
+ 
+  //get old value
+  self.selectedItem.subscribe(function(value) { 
+    if(value) {
+      value.Toggle();
+    }
+  }, self, &quot;beforeChange&quot;);
+ 
+  //get the new value
+  self.selectedItem.subscribe(function(value) { 
+    if(value) {
+      value.Toggle();
+    }
+  });
+ 
+  //populate some items
+  for(var i = 0; i &amp;lt; 1000; i++)
+  {
+    self.items.push(new nested(i));
+  }
+};
+ 
+var nested = function(name) { 
+  var self = this;
+ 
+  self.Name = name;
+ 
+  self.IsActive = ko.observable(false);
+ 
+  self.Toggle = function() { 
+    self.IsActive(!self.IsActive());
+  }
+ 
+  self.nestedItems = ko.observableArray();
+ 
+  //populate some propeties on the items
+  self.msg = var msg = 'This is a really big collection ' + self.Name;
+  for(var i = 0; i &amp;lt; 1000; i++)
+  {
+    self.nestedItems.push(self.msg);
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then you render this as follows&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;select data-bind=&quot;options: items, optionsText: 'Name', value: selectedItem&quot;&amp;gt;&amp;lt;/select&amp;gt;
+ 
+&amp;lt;ul data-bind=&quot;foreach: items&quot;&amp;gt;
+  &amp;lt;li data-bind=&quot;if: IsActive&quot;&amp;gt;
+    &amp;lt;ul data-bind=&quot;foreach: nestedItems&quot;&amp;gt;
+      &amp;lt;li&amp;gt;
+        &amp;lt;span data-bind=&quot;text: $data&quot;&amp;gt;&amp;lt;/span&amp;gt;
+      &amp;lt;/li&amp;gt;
+    &amp;lt;/ul&amp;gt;
+  &amp;lt;/li&amp;gt;
+&amp;lt;/ul&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;JsFiddle This uses a slightly smaller amount of items as 1 Million is really not the best idea to generate in JS.&lt;/p&gt;
+
+&lt;p&gt;What’s difference between if and ifnot&lt;/p&gt;
+
+&lt;p&gt;Again from the docs&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;The ifnot binding is exactly the same as the if binding, except that it inverts the result of whatever expression you pass to it. For more details, see documentation for the if binding.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;It also says that ifnot is the same as an inverted if or&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;data-bind=&quot;if: IsActive&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;is the same as&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;data-bind=&quot;if: !IsActive()&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;One thing to note is that if you directly access an observable in a binding you don’t need to evaluate it; however, if you need to invert it you must first access the value (e.g. IsActive()). ifnot avoids this requirement.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Jun 2013 14:11:00 -0700</pubDate>
+        <link>http://msarchet.com/knockoutjs-the-power-of-if/</link>
+        <guid isPermaLink="true">http://msarchet.com/knockoutjs-the-power-of-if/</guid>
+      </item>
+    
+      <item>
+        <title>Using the ServiceStack Redis Client</title>
+        <description>&lt;h1 id=&quot;using-the-servicestack-redis-client-to-work-with-redis-lists-servicestackredis&quot;&gt;Using the ServiceStack Redis Client to Work with Redis Lists (ServiceStack.Redis)&lt;/h1&gt;
+
+&lt;p&gt;I’m not going to focus on using Redis as a Cache, this is pretty straight foward and a lot of what I am going to talk about can be
+applied to using the Redis as a Cache.&lt;/p&gt;
+
+&lt;p&gt;First: Familarize yourself with Redis.&lt;/p&gt;
+
+&lt;p&gt;I would suggest checking out redis.io (the main redis site) and giving The Little Redis Book (http://openmymind.net/2012/1/23/The-Little-Redis-Book) a read.&lt;/p&gt;
+
+&lt;p&gt;Redis is ‘just’ a key-value store, but it allows the values to be actual data structures instead of just strings. ServiceStack has taken this farther for us and provided serialization interfaces to allow us to use a Typed client to interact with redis without worrying about this ourselves.&lt;/p&gt;
+
+&lt;p&gt;Second: Get Redis running locally&lt;/p&gt;
+
+&lt;p&gt;The fastest way to do this is to download the latest version from https://github.com/dmajkic/redis/downloads and start the redis-server.exe on your machine.&lt;/p&gt;
+
+&lt;p&gt;Third: All hail NuGet.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;Install-Package ServiceStack.Redis&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Fourth: Connecting to Redis&lt;/p&gt;
+
+&lt;p&gt;ServiceStack has made this simple. The easiest way to do this is like this&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;using(var client = new RedisClient())
+{
+    //code goes here
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This works great but it creates a new client everytime we connect to redis. You can however do the following into your IoC container&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Container.Register&amp;lt;IRedisClientsManager&amp;gt;(new BasicClientManager(&quot;http://localhost:6378&quot;))  or
+Container.Register&amp;lt;IRedisClientsManager&amp;gt;(new PooledClientManager(&quot;http://localhost:6378&quot;)) 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;then instead of calling &lt;code&gt;new RedisClient()&lt;/code&gt; you can call &lt;code&gt;Container.Resolve&amp;lt;IManagedRedisClients&amp;gt;().GetClient()&lt;/code&gt;!&lt;/p&gt;
+
+&lt;p&gt;Which one should I use?
+Both of these implementations will pool your clients. &lt;code&gt;BasicClientManager&lt;/code&gt;, is best when your redis server is on localhost &lt;code&gt;PooledClientManger&lt;/code&gt;, is best when your reids service is on a remote machine.
+So now that you’ve got your application hooked up to redis what can you do?&lt;/p&gt;
+
+&lt;p&gt;The simplest thing to do with Redis is just store and read some values.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;using(var redis = new RedisClient())
+{
+    redis.SetEntry(&quot;name&quot;, &quot;Michael Sarchet&quot;);
+    console.log(redis.GetEntry(&quot;name&quot;));
+}
+What if we want to store a value that is a type
+
+public class DataType
+{
+    public string Name { get; set; }
+}
+ 
+using(var redis = new RedisClient())
+{
+    var client = redis.As&amp;lt;DataType&amp;gt;();
+    client.SetEntry(&quot;Data1&quot;, new DataType() { Name = &quot;Michael&quot; });
+    console.log(client.GetEntry(&quot;Data1&quot;).Name);
+}
+//Remember in a production environment you are going to want to use the IRedisClientsManager.GetClient() method, since this is the thread safe way to get a client. For now we can just use new RedisClient().
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now we’ve just stored a value with a type into Redis. This is done via the Asmethod on the client. This tells the client to serialize and deserialize the values as that type.&lt;/p&gt;
+
+&lt;p&gt;If you open up the redis-cli and run&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;get Data1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;you should see something that looks like&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;{\&quot;Name\&quot; : \&quot;Michael\&quot;}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This is becuase ServiceStack.Redis is serializing these values, and handling the deserialization on the read. This covers the basic use case for Redis, storing some data and reading it back from Redis. The client exposes most (if not all) of the redis command line actions directly. Play around with it and get a feel for how this will work in your application.&lt;/p&gt;
+
+&lt;p&gt;Now that you are more familiar with how the RedisClient works directly we will look at using the List structure that redis provides. This is one of the more directly useful things that you can do via redis without getting into a lot of the specific redis functionality.&lt;/p&gt;
+
+&lt;p&gt;So let’s look at persisting a larger more complex object and what we would need to do to access a list of these objects:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class Customer
+{
+    public string Name { get; set; }
+    public string Phone { get; set; }
+    public string Address { get; set; }
+}
+ 
+public class CustomerAccess
+{
+    public static IList&amp;lt;Customer&amp;gt; Customers 
+    { 
+        get
+        {
+            using(var client = new RedisClient())
+            {
+ 
+                TClient = client.As&amp;lt;Cusomter&amp;gt;(); //woah I'll get to this don't worry
+                return TClient.Lists[&quot;cusomters&quot;].ToList();
+            }
+        }
+    }
+ 
+    public static void AddCustomer(Customer customer)
+    {
+        using(var client = new RedisClient())
+        {
+            TClient = client.As&amp;lt;Cusomter&amp;gt;();
+            TClient.Lists[&quot;customers&quot;].Add(customer);
+        }
+ 
+    }
+ 
+    public static bool RemoveCustomer(Customer customer)
+    {
+        using(var client = new RedisClient())
+        {
+            TClient = client.As&amp;lt;Customer&amp;gt;();
+            return TClient.Lists[&quot;cusomters&quot;].Remove(customer);
+        }
+    }
+} What just happened?
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;client.As&amp;lt;T&amp;gt;&lt;/code&gt; returns a IRedisTypedClient which just handles the serialization for us.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;TClient.Lists[key]&lt;/code&gt; gives us access to an &lt;code&gt;IRedisList&lt;/code&gt; (which is the wrapper for the internal Redis List data structure). &lt;code&gt;IRedisList&amp;lt;T&amp;gt;&lt;/code&gt; implements &lt;code&gt;IList&amp;lt;T&amp;gt;&lt;/code&gt; which lets us access it like a normal list.&lt;/p&gt;
+
+&lt;p&gt;Internally ServiceStack is handling all actions to call these methods (proTip! most of these are native to redis  so it’s super fast)&lt;/p&gt;
+
+&lt;p&gt;If you notice in the Customers Property I called &lt;code&gt;Tclient.Lists[&quot;customer&quot;].ToList()&lt;/code&gt;, this is because if you just return the &lt;code&gt;IRedisList&lt;/code&gt; any time you act on it it will reopen a connection to redis, which can be kind of bad. Instead we are just getting a snapshot of the data at that time. However if you wanted and you ignored the &lt;code&gt;ToList()&lt;/code&gt; you could add data and then get it and it will all come directly from redis, which can be useful in the right circumstances.&lt;/p&gt;
+
+&lt;p&gt;My next post will cover the Set and Hash Implementations and some of the more powerful things you can do with those.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Jun 2013 11:53:00 -0700</pubDate>
+        <link>http://msarchet.com/using-the-servicestack-redis-client/</link>
+        <guid isPermaLink="true">http://msarchet.com/using-the-servicestack-redis-client/</guid>
+      </item>
+    
+      <item>
+        <title>Improve Your ASP .NET Website Performance</title>
+        <description>&lt;p&gt;Improve Your ASP .NET Website Performance&lt;/p&gt;
+
+&lt;h1 id=&quot;minutes-to-better-performance-on-your-asp-net-web-site&quot;&gt;5 minutes to better performance on your ASP .NET Web Site&lt;/h1&gt;
+
+&lt;p&gt;Step 1:&lt;/p&gt;
+
+&lt;p&gt;Turn on Gzip.&lt;/p&gt;
+
+&lt;p&gt;How do you turn on gzip?&lt;/p&gt;
+
+&lt;p&gt;For most sites you want to put this into your web.config&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;system.webserver&amp;gt;
+	&amp;lt;httpCompression directory=&quot;%TEMP%\iisexpress\IIS Temporary Compressed Files&quot;&amp;gt;
+        &amp;lt;scheme name=&quot;gzip&quot; dll=&quot;%IIS_BIN%\gzip.dll&quot; /&amp;gt;
+        &amp;lt;dynamicTypes&amp;gt;
+            &amp;lt;add mimeType=&quot;text/*&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;message/*&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;application/x-javascript&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;*/*&quot; enabled=&quot;false&quot; /&amp;gt;
+        &amp;lt;/dynamicTypes&amp;gt;
+        &amp;lt;staticTypes&amp;gt;
+            &amp;lt;add mimeType=&quot;text/*&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;message/*&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;application/x-javascript&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;application/atom+xml&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;application/xaml+xml&quot; enabled=&quot;true&quot; /&amp;gt;
+            &amp;lt;add mimeType=&quot;*/*&quot; enabled=&quot;false&quot; /&amp;gt;
+        &amp;lt;/staticTypes&amp;gt;
+    &amp;lt;/httpCompression&amp;gt;
+    &amp;lt;urlCompression doStaticCompression=&quot;true&quot; doDynamicCompression=&quot;true&quot;/&amp;gt;
+&amp;lt;/system.webserver&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You may need to enable Compression in IIS if you are running an older version.&lt;/p&gt;
+
+&lt;p&gt;Step 2:&lt;/p&gt;
+
+&lt;p&gt;Set the correct cache headers on your javascript and css&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;system.webserver&amp;gt;
+        &amp;lt;staticContent&amp;gt;
+           &amp;lt;clientCache cacheControlMode=&quot;UseMaxAge&quot; cacheControlMaxAge=&quot;350.00:00:00&quot; /&amp;gt;
+        &amp;lt;/staticContent&amp;gt;
+&amp;lt;/system.webserver&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This says cache all my static content for 350 days&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Warning&lt;/strong&gt; You may not want to do this if you aren’t doing some kind of cache invalidation with your file names.&lt;/p&gt;
+
+&lt;p&gt;Step 3:&lt;/p&gt;
+
+&lt;p&gt;Minify and Combine all of your javascript and css into as few requests as possible per page&lt;/p&gt;
+
+&lt;p&gt;Minify - Strip all white space and comments from your javascript and css
+Combine - Put as many files into one file as you can&lt;/p&gt;
+
+&lt;p&gt;Easiest way to do this:&lt;/p&gt;
+
+&lt;p&gt;Install Request Reduce in each project you want to combine and minify in&lt;/p&gt;
+
+&lt;p&gt;www.requestreduce.org&lt;/p&gt;
+
+&lt;p&gt;Nuget Action:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Install-Package RequestReduce
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You shouldn’t have to config anything and it should work out of the box&lt;/p&gt;
+
+&lt;p&gt;Slightly more complicated ways of doing this&lt;/p&gt;
+
+&lt;p&gt;Use a bundler&lt;/p&gt;
+
+&lt;p&gt;the ASP .NET bundler is great&lt;/p&gt;
+
+&lt;p&gt;Cassette  is also awesome&lt;/p&gt;
+
+&lt;p&gt;BAM!&lt;/p&gt;
+
+&lt;p&gt;You’ve now just probably sped your page up!&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Jun 2013 11:48:00 -0700</pubDate>
+        <link>http://msarchet.com/improve-your-asp-net-website-performance/</link>
+        <guid isPermaLink="true">http://msarchet.com/improve-your-asp-net-website-performance/</guid>
+      </item>
+    
+  </channel>
+</rss>

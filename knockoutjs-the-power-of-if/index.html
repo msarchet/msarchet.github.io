@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>KnockoutJS The Power of if</title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="description" content="Personal site of Michael Sarchet">
+    <link rel="canonical" href="http://msarchet.com/knockoutjs-the-power-of-if/">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/main.css">
+
+</head>
+
+
+    <body>
+
+    <div id="header">
+  <span class="brand"><a href="/">msarchet.com</a></span>
+  <ul class="nav">
+    
+      <li class="nav-item">About</li>
+    
+      <li class="nav-item"></li>
+    
+      <li class="nav-item"></li>
+    
+  </ul>
+</div>
+
+
+    <div id="content">
+      <div class="post">
+
+  <h1>KnockoutJS The Power of if</h1>
+  <p class="meta">Jun 12, 2013</p>
+
+  <h2 id="to-if-or-ifnot-that-is-the-question">To If or IfNot That is the Question</h2>
+
+<p>Knockoutjs is a fantastic library for building single page applications and for making use of the MVVM in your javascript heavy web pages. Something that is over looked a lot when talking about knockout is the if and ifnot bindings.</p>
+
+<h3 id="what-does-if-do">What Does if Do?</h3>
+
+<p>From the docs</p>
+
+<blockquote>
+  <p>The if binding causes a section of markup to appear in your document (and to have its data-bind attributes applied), only if a specified expression evaluates to true (or a true-ish value such as a non-null object or nonempty string).</p>
+</blockquote>
+
+<p>This is an extremely powerful feature of knockout, some reasons:</p>
+
+<ul>
+  <li>
+    <p>It allows you to have conditional DOM elements without caring if the property is defined</p>
+  </li>
+  <li>
+    <p>It allows you to have large collections and only render the current active one</p>
+  </li>
+  <li>
+    <p>It allows you to speed up your page rendering time</p>
+  </li>
+</ul>
+
+<p>Let’s discuss:</p>
+
+<p>Say you have the following ViewModel that has 1 Million child items</p>
+
+<pre><code>var data = function() { 
+  var self = this;
+ 
+  self.items = ko.observableArray();
+  self.selectedItem = ko.observable();
+ 
+  //get old value
+  self.selectedItem.subscribe(function(value) { 
+    if(value) {
+      value.Toggle();
+    }
+  }, self, "beforeChange");
+ 
+  //get the new value
+  self.selectedItem.subscribe(function(value) { 
+    if(value) {
+      value.Toggle();
+    }
+  });
+ 
+  //populate some items
+  for(var i = 0; i &lt; 1000; i++)
+  {
+    self.items.push(new nested(i));
+  }
+};
+ 
+var nested = function(name) { 
+  var self = this;
+ 
+  self.Name = name;
+ 
+  self.IsActive = ko.observable(false);
+ 
+  self.Toggle = function() { 
+    self.IsActive(!self.IsActive());
+  }
+ 
+  self.nestedItems = ko.observableArray();
+ 
+  //populate some propeties on the items
+  self.msg = var msg = 'This is a really big collection ' + self.Name;
+  for(var i = 0; i &lt; 1000; i++)
+  {
+    self.nestedItems.push(self.msg);
+  }
+}
+</code></pre>
+
+<p>Then you render this as follows</p>
+
+<pre><code>&lt;select data-bind="options: items, optionsText: 'Name', value: selectedItem"&gt;&lt;/select&gt;
+ 
+&lt;ul data-bind="foreach: items"&gt;
+  &lt;li data-bind="if: IsActive"&gt;
+    &lt;ul data-bind="foreach: nestedItems"&gt;
+      &lt;li&gt;
+        &lt;span data-bind="text: $data"&gt;&lt;/span&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+</code></pre>
+
+<p>JsFiddle This uses a slightly smaller amount of items as 1 Million is really not the best idea to generate in JS.</p>
+
+<p>What’s difference between if and ifnot</p>
+
+<p>Again from the docs</p>
+
+<blockquote>
+  <p>The ifnot binding is exactly the same as the if binding, except that it inverts the result of whatever expression you pass to it. For more details, see documentation for the if binding.</p>
+</blockquote>
+
+<p>It also says that ifnot is the same as an inverted if or</p>
+
+<pre><code>data-bind="if: IsActive"
+</code></pre>
+
+<p>is the same as</p>
+
+<pre><code>data-bind="if: !IsActive()"
+</code></pre>
+
+<p>One thing to note is that if you directly access an observable in a binding you don’t need to evaluate it; however, if you need to invert it you must first access the value (e.g. IsActive()). ifnot avoids this requirement.</p>
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'msarchetblog';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+     
+
+</div>
+
+
+    </div>
+
+    
+
+    </body>
+</html>
